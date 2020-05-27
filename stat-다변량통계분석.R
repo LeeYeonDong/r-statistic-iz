@@ -828,3 +828,143 @@ tennis_z_bf <- npar.t.test(z1+z2+z3~grade, data = tennis_z, method = "normal",
 
 tennis_z_bf %>% summary()
 tennis_z_bf %>% plot()
+
+
+
+
+#### 4.5.6 
+### (1) 세 군집의 다변량 정규성을 검토하라
+ear <- read.table("D:/대학원/다변량/R-codes-MET/ear.txt", header = TRUE) 
+ear <- ear %>% data.frame()
+
+ordinary <- ear %>% filter(group == "ordinary") 
+ordinary <- ordinary %>% select(left,right)
+
+lunatic <- ear %>% filter(group == "lunatic") 
+lunatic <- lunatic %>% select(left,right)
+
+other <- ear %>% filter(group == "other") 
+other <- other %>% select(left,right) 
+
+ordinary_mvn <- mvn(ordinary, multivariatePlot = "qq")
+lunatic_mvn <- mvn(lunatic, multivariatePlot = "qq")
+other_mvn <- mvn(other, multivariatePlot = "qq")
+
+
+### (2) 세 군집의 공분산 행렬이 동질한지 살펴보라
+ear_lr <- ear %>% select(left,right) 
+
+ear_g <- ear %>% select(group) 
+ear_g <- ear_g$group %>% as.factor()
+
+ear_boxM <- boxM(ear_lr,ear_g)
+
+
+### (3) 세 군집의 평균벡터에 대한 H0 : μ1 = μ2 = μ3를 검정하라
+ear$group <- ear$group %>% factor()
+
+ear_left <- ear %>% select(id,left,group) 
+ear_right <- ear %>% select(id,right,group) 
+
+ear_lm <- lm(cbind(left, right) ~ group, ear)
+ear_lm %>% summary()
+
+ear_lm %>% Manova(test.statistic = "Wilks")
+ear_lm %>% Manova(test.statistic = "Pillai")
+ear_lm %>% Manova(test.statistic = "Hotelling-Lawley")
+ear_lm %>% Manova(test.statistic = "Roy")
+
+
+
+##left-anova
+ear_id <- rep(1:20,3)
+ear$id <- ear_id %>% factor()
+
+ear_left_g <- ggplot(data=ear_left,aes(x=group,y=left)) +
+              geom_line(aes(group=id,col=id))
+
+
+ear_left_ms_lu <- ear_left %>% 
+                 filter(group == "lunatic") %>% 
+                 summarize(mean_left = mean(left), sd_left = sd(left))
+
+ear_left_ms_or <- ear_left %>% 
+                 filter(group == "ordinary") %>% 
+                 summarize(mean_left = mean(left), sd_left = sd(left))
+
+ear_left_ms_ot <- ear_left %>% 
+                 filter(group == "other") %>% 
+                 summarize(mean_left = mean(left), sd_left = sd(left))
+
+ear_left_ms <- rbind(ear_left_ms_lu,ear_left_ms_or,ear_left_ms_ot)
+group <- c("lunatic","ordinary","other")
+ear_left_ms$group <- group %>% factor()
+
+
+ear_left_ms_g <- ggplot(ear_left_ms,aes(x=sd_left,y=mean_left,color=group)) +
+                    geom_point()
+
+ear_left_aov <- aov(left ~ group + Error(id/group), data=ear_left) 
+ear_left_aov %>% summary()
+
+##right-anova
+ear_right_g <- ggplot(data=ear_right,aes(x=group,y=right)) +
+  geom_line(aes(group=id,col=id))
+
+
+ear_right_ms_lu <- ear_right %>% 
+  filter(group == "lunatic") %>% 
+  summarize(mean_right = mean(right), sd_right = sd(right))
+
+ear_right_ms_or <- ear_right %>% 
+  filter(group == "ordinary") %>% 
+  summarize(mean_right = mean(right), sd_right = sd(right))
+
+ear_right_ms_ot <- ear_right %>% 
+  filter(group == "other") %>% 
+  summarize(mean_right = mean(right), sd_right = sd(right))
+
+ear_right_ms <- rbind(ear_right_ms_lu,ear_right_ms_or,ear_right_ms_ot)
+group <- c("lunatic","ordinary","other")
+ear_right_ms$group <- group %>% factor()
+
+
+ear_right_ms_g <- ggplot(ear_right_ms,aes(x=sd_right,y=mean_right,color=group)) +
+  geom_point()
+
+ear_right_aov <- aov(right ~ group + Error(id/group), data=ear_right) 
+ear_right_aov %>% summary()
+
+
+
+#### 4.5.7 
+### (1) [자료 4.5.2]에서 산모의 몸무게는 어떤 영향을 미치며 그 역할은 무엇인지 설명하라
+
+#산모의 몸무게는 Drug, Apgar1, Apgar2 자료의 구조에 선형적 영향을 미치는 공변량이다. 공변량이란 여러 설명변수들이 공통적으로 공유하고 있는 변량을 의미한다. 여러개의 공변량과 반응변수로 구성관 모형은 MANCOVA로 분석한다
+
+### (2) (1)에서 고려한 산모의 몸무게를 고려하지 않고 네가지 약의 종류에 대한 귀무가설 H0 : μ1 = μ2 = μ3 = μ4를 유의수준 5%내에서 검정하라
+drug <- read.table("D:/대학원/다변량/R-codes-MET/drug.txt", header = TRUE) 
+drug <- drug %>% data.frame()
+
+drug$Drug <- drug$Drug %>% factor()
+
+drug_lm1 <- lm(cbind(Apgar1, Apgar2) ~ Drug, drug)
+drug_lm1 %>% summary()
+
+drug_lm1 %>% Manova(test.statistic = "Wilks")
+drug_lm1 %>% Manova(test.statistic = "Pillai")
+drug_lm1 %>% Manova(test.statistic = "Hotelling-Lawley")
+drug_lm1 %>% Manova(test.statistic = "Roy")
+
+
+### (3) (1)에서 고려한 산모의 몸무게를 고려하고 네가지 약의 종류에 대한 귀무가설 H0 : μ1 = μ2 = μ3 = μ4를 유의수준 5%내에서 검정하라
+drug_lm2 <- lm(cbind(Apgar1, Apgar2) ~ Drug + wt, drug)
+drug_lm2 %>% summary()
+
+drug_lm2 %>% Manova(test.statistic = "Wilks")
+drug_lm2 %>% Manova(test.statistic = "Pillai")
+drug_lm2 %>% Manova(test.statistic = "Hotelling-Lawley")
+drug_lm2 %>% Manova(test.statistic = "Roy")
+
+
+### (4) (2)와 (3)의 차이를 설명하라
