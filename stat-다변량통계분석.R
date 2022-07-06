@@ -679,7 +679,7 @@ outlier제거_LOF_mvn <- mvn(outlier제거_LOF, multivariatePlot = "qq")
 #### 3.6.5
 ###데이터 불러오기
 blood <- read.table("D:/대학원/다변량/rmtda/blood.txt", header = TRUE) 
-blood <- blood %>% data.frame()
+blood <- blood %>% as.data.frame()
 
 blood$respon <- blood$respon %>% as.factor()
 
@@ -956,6 +956,8 @@ drug_lm1 %>% Manova(test.statistic = "Pillai")
 drug_lm1 %>% Manova(test.statistic = "Hotelling-Lawley")
 drug_lm1 %>% Manova(test.statistic = "Roy")
 
+library(jmv)
+drug %>% mancova(deps = vars(Apgar1, Apgar2), factors = Drug)
 
 ### (3) (1)에서 고려한 산모의 몸무게를 고려하고 네가지 약의 종류에 대한 귀무가설 H0 : μ1 = μ2 = μ3 = μ4를 유의수준 5%내에서 검정하라
 drug_lm2 <- lm(cbind(Apgar1, Apgar2) ~ Drug + wt, drug)
@@ -966,5 +968,114 @@ drug_lm2 %>% Manova(test.statistic = "Pillai")
 drug_lm2 %>% Manova(test.statistic = "Hotelling-Lawley")
 drug_lm2 %>% Manova(test.statistic = "Roy")
 
+drug %>% mancova(deps = vars(Apgar1, Apgar2), factors = Drug, covs =  wt)
 
 ### (4) (2)와 (3)의 차이를 설명하라
+
+
+
+#### 5.6.6 [보기 4.3.2]의 [자료 4.3.2](student.txt)에는 사회경제적 지위가 높은 부모(Group 1)의 유치원 자녀 32명과 지위가 낮은 부모(Group 2)d의 유치원 자녀 37명에 대해 종속변인으로 세 가지 표준화 검사(PPVT, RPMT, SAT) 결과가 포함되어 있다. 그리고 이들에게 영양을 미칠수 있는 공변량으로 5개 영역(N, S, NS, NA, SS)에 대해 섬사를 실시한 점수를 고려하였다.
+read.table("D:/대학원/다변량/R-codes-MET/student.txt", header = TRUE) 
+stu <- stu %>% data.frame()
+stu$Group <- stu$Group %>% factor()
+stu %>% head()
+
+
+### (1) 두 집단(Group 1, Group 2)에 대한 공변량을 제외한 MANOVA의 결과를 요약하라
+stu_lm <- lm(cbind(PPVT, RPMT, SAT) ~ Group, stu)
+
+stu_manova <- stu_lm %>% Manova()
+stu_manova %>% summary()
+
+#h0 기각
+
+
+### (2)프로파일 그림을 통해 두 집단의 프로파일의 평행성, 일치성, 수준성을 검토하라
+stu_pa1 <- stu %>% select(c("NS", "NA.", "PPVT", "RPMT", "SAT"))
+stu_pa2 <- stu %>% select(c("Group"))
+stu_pa2 <- stu_pa2$Group %>% factor()
+
+stu_pa <- pbg(data=stu_pa1, group=stu_pa2, original.names=TRUE, profile.plot=TRUE)
+stu_pa$profile.test
+
+### (3) 프로파일 분석을 실시하라
+stu_pa %>% summary()
+
+### (4) (1)의 결과와 (3)의 결과를 서로 비교하라
+
+
+
+#### 5.6.10 [자료 5.6.1]에는 기니피그(guinea pig) 성장에 미치는 비타민 보충제의 3수주에 따른 집단의 6주간 몸무게를 측정한 자료이다.
+pig <- read.table("D:/대학원/다변량/R-codes-MET/pig.txt", header = FALSE) 
+pig <- pig %>% data.frame()
+names(pig) <- c("집단","주1","주2","주3","주4","주5","주6")
+pig$집단 <- pig$집단 %>% factor()
+
+### (1) 각 집단의 평균벡터와 전체 평균벡터를 구하라
+pig_pa1 <- pig %>% select(c("주1","주2","주3","주4","주5","주6"))
+pig_pa2 <- pig %>% select(c("집단"))
+pig_pa2 <- pig_pa2$집단 %>% factor()
+
+pig_pa <- pbg(data=pig_pa1, group=pig_pa2, original.names=TRUE, profile.plot=TRUE)
+pig_pa$data.summary
+pig_pa$profile.test
+
+### (2) 프로파일 그림을 통해 세 집단의 프로파일의 평행성, 일치성, 수준성을 살펴보라
+pig_pa %>% summary()
+
+### (3) 대비행렬에 대해 일반화 PA를 실시하라
+c.mat1 <- c(1,-1,0,0,0,0)
+c.mat2 <- c(0,1,-1,0,0,0)
+c.mat3 <- c(0,0,1,-1,0,0)
+c.mat4 <- c(0,0,0,1,-1,0)
+c.mat5 <- c(0,0,0,0,1,-1)
+
+c.mat <- rbind(c.mat1, c.mat2, c.mat3, c.mat4, c.mat5)
+c.mat <- c.mat %>% matrix(5,6)
+
+
+pig1 <- pig %>% filter(집단=="1")
+pig1 <- pig1 %>% select(-집단)
+pig1 <- pig1 %>% unlist()
+pig1 <- pig1 %>% as.vector()
+pig1 <- pig1 %>% matrix(5,6)
+
+pig1_g <- c.mat %*% t(pig1)
+pig1_g <- pig1_g %>% as.data.frame()
+pig1_g$집단 <- rep("G1",5)
+
+
+pig2 <- pig %>% filter(집단=="2")
+pig2 <- pig2 %>% select(-집단)
+pig2 <- pig2 %>% unlist()
+pig2 <- pig2 %>% as.vector()
+pig2 <- pig2 %>% matrix(5,6)
+
+pig2_g <- c.mat %*% t(pig2)
+pig2_g <- pig2_g %>% as.data.frame()
+pig2_g$집단 <- rep("G2",5)
+
+
+pig3 <- pig %>% filter(집단=="3")
+pig3 <- pig3 %>% select(-집단)
+pig3 <- pig3 %>% unlist()
+pig3 <- pig3 %>% as.vector()
+pig3 <- pig3 %>% matrix(5,6)
+
+pig3_g <- c.mat %*% t(pig3)
+pig3_g <- pig3_g %>% as.data.frame()
+pig3_g$집단 <- rep("G3",5)
+
+
+pig_g <- rbind(pig1_g,pig2_g,pig3_g)
+pig_g <- pig_g %>% as.data.frame()
+pig_g$집단 <- pig_g$집단 %>% as.factor()
+
+pig_g_pa1 <- pig_g %>% select(c("V1","V2","V3","V4","V5"))
+pig_g_pa2 <- pig_g %>% select(c("집단"))
+pig_g_pa2 <- pig_g_pa2$집단 %>% factor()
+
+pig_g_pa <- pbg(data=pig_g_pa1, group=pig_g_pa2, original.names=TRUE, profile.plot=TRUE)
+pig_g_pa$data.summary
+pig_g_pa %>% summary()
+
